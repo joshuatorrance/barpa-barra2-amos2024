@@ -214,9 +214,9 @@ def _str2dt(t, start=True):
         # Assume yyyy
         y = int(t)
         if start:
-            return dt(y, m, 1, 0, 0)
+            return dt(y, 1, 1, 0, 0)
         else:
-            return dt(y, m, 12, 23, 59, 59)
+            return dt(y, 12, 31, 23, 59, 59)
 
     elif len(t) == 6:
         # Assume yyyymm
