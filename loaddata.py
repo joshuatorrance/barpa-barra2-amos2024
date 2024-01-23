@@ -52,8 +52,6 @@ def list_experiments(model):
         toks = expt.split("/")
         print("   ".join(np.array(toks)[indexes]))
 
-    return
-
 def make_barra2_dirpath(model, freq):
     """
     Returns path to the BARRA2 data directory.
@@ -73,7 +71,8 @@ def make_barra2_dirpath(model, freq):
 
     era5_mem = model_dict[model][0]
     domain = model_dict[model][1]
-    return rootdir_templ.format(basepath=basepath, domain=domain, era5_mem=era5_mem, model=model, freq=freq)
+    return rootdir_templ.format(basepath=basepath, domain=domain,
+                                era5_mem=era5_mem, model=model, freq=freq)
 
 def get_barra2_files(model, freq, variable,
                      version='*',
@@ -102,17 +101,18 @@ def get_barra2_files(model, freq, variable,
     files = []
     if freq == 'fx':
         # static data
-        files = glob(os.path.join(rootdir, '{:}_**.nc'.format(variable)))
+        files = glob(os.path.join(rootdir, f'{variable}_**.nc'))
     else:
         # non-static data
         # data organised as monthly files
-        tspan = pd.date_range(dt(tstart.year, tstart.month, 1), dt(tend.year, tend.month, 1), freq='MS')
+        tspan = pd.date_range(dt(tstart.year, tstart.month, 1),
+                              dt(tend.year, tend.month, 1), freq='MS')
 
         if len(tspan)==0:
             tspan = pd.date_range(tstart, tend, freq='D')
 
         for time in tspan:
-            files += glob(os.path.join(rootdir, '{:}_*_{:}-*.nc'.format(variable, time.strftime("%Y%m"))))
+            files += glob(os.path.join(rootdir, f'{variable}_*_{time.strftime("%Y%m")}-*.nc'))
 
     files = list(set(files))
     files.sort()
@@ -177,7 +177,8 @@ def load_barra2_data(model, freq, variable,
     files = get_barra2_files(model, freq, variable, version=version, tstart=tstart, tend=tend)
     assert len(files) > 0, "Cannot find data files"
 
-    ds = xr.open_mfdataset(files, combine='nested', concat_dim='time', parallel=True, coords='minimal', data_vars='minimal', compat='override')
+    ds = xr.open_mfdataset(files, combine='nested', concat_dim='time',parallel=True,
+                           coords='minimal', data_vars='minimal', compat='override')
 
     if loc is not None:
         lat0 = loc[0]
@@ -209,7 +210,7 @@ def _str2dt(t, start=True):
     Returns:
         datetime (datetime.datetime): datetime object of the datetime matching t
     """
-    assert len(t) in [4, 6, 8], "Undefine time range information: {:}".format(t)
+    assert len(t) in [4, 6, 8], f"Undefined time range information: {t}"
     if len(t) == 4:
         # Assume yyyy
         y = int(t)
@@ -302,7 +303,8 @@ def make_barpa_dirpath(rcm, gcm, scenario, freq):
     domain = model_dict[rcm]
     ens = gcm_ens[gcm]
 
-    return rootdir_templ.format(basepath=basepath, domain=domain, gcm=gcm, scenario=scenario, ens=ens, rcm=rcm, freq=freq)
+    return rootdir_templ.format(basepath=basepath, domain=domain, gcm=gcm,
+                                scenario=scenario, ens=ens, rcm=rcm, freq=freq)
 
 def get_barpa_files(rcm, gcm, scenario, freq, variable,
                     version="*",
@@ -330,7 +332,7 @@ def get_barpa_files(rcm, gcm, scenario, freq, variable,
     datadir = os.path.join( make_barpa_dirpath(rcm, gcm, scenario, freq), variable, version)
 
     # Find all the files within the time range
-    files = glob(os.path.join(datadir, '%s_*.nc' % variable))
+    files = glob(os.path.join(datadir, f'{variable}_*.nc'))
     files.sort()
 
     if freq == 'fx':
@@ -415,7 +417,8 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
         /g/data/py18/BARPA/output/CMIP6/DD/[domain]/BOM/[gcm]/[scenario]/
         [ens]/[rcm]/v1-r1/[freq]/[variable]/[version]
     """
-    files = get_barpa_files(rcm, gcm, scenario, freq, variable, version=version, tstart=tstart, tend=tend)
+    files = get_barpa_files(rcm, gcm, scenario, freq, variable, version=version,
+                            tstart=tstart, tend=tend)
     assert len(files) > 0, "Cannot find data files"
 
     cal = _get_calendar(files[0])
@@ -423,13 +426,19 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
         tstart = dt(1900, 1, 1) if tstart is None else tstart
         tend = dt(2200, 1, 1) if tend is None else tend
     elif '360' in cal:
-        tstart = cftime.Datetime360Day(1900, 1, 1) if tstart is None else cftime.Datetime360Day(tstart.year, tstart.month, tstart.day, tstart.hour)
-        tend = cftime.Datetime360Day(2200, 1, 1) if tend is None else cftime.Datetime360Day(tend.year, tend.month, tend.day, tend.hour)
-    elif '365' in cal:
-        tstart = cftime.DatetimeAllLeap(1900, 1, 1) if tstart is None else cftime.DatetimeNoLeap(tstart.year, tstart.month, tstart.day, tstart.hour)
-        tend = cftime.DatetimeAllLeap(2200, 1, 1) if tend is None else cftime.DatetimeNoLeap(tend.year, tend.month, tend.day, tend.hour)
+        tstart = cftime.Datetime360Day(1900, 1, 1) if tstart is None else \
+            cftime.Datetime360Day(tstart.year, tstart.month, tstart.day, tstart.hour)
 
-    ds = xr.open_mfdataset(files, combine='nested', concat_dim='time', parallel=True, coords='minimal', data_vars='minimal', compat='override')
+        tend = cftime.Datetime360Day(2200, 1, 1) if tend is None else \
+            cftime.Datetime360Day(tend.year, tend.month, tend.day, tend.hour)
+    elif '365' in cal:
+        tstart = cftime.DatetimeAllLeap(1900, 1, 1) if tstart is None else \
+            cftime.DatetimeNoLeap(tstart.year, tstart.month, tstart.day, tstart.hour)
+        tend = cftime.DatetimeAllLeap(2200, 1, 1) if tend is None else \
+            cftime.DatetimeNoLeap(tend.year, tend.month, tend.day, tend.hour)
+
+    ds = xr.open_mfdataset(files, combine='nested', concat_dim='time', parallel=True,
+                           coords='minimal', data_vars='minimal', compat='override')
 
     if freq == 'fx':
         out = ds
@@ -462,15 +471,17 @@ def whatis(freq, variable, model='BARRA2'):
         attributes (dict): Dictionary containing the variable attributes
     """
     if model == 'BARRA2':
-        files = get_barra2_files('BARRA-R2', freq, variable, tstart=dt(2010, 1, 1), tend=dt(2010, 1, 1))
+        files = get_barra2_files('BARRA-R2', freq, variable,
+                                 tstart=dt(2010, 1, 1), tend=dt(2010, 1, 1))
     else:
-        files = get_barpa_files('BARPA-R', 'ERA5', 'evaluation', freq, variable, tstart=dt(2010, 1, 1), tend=dt(2010, 1, 1))
+        files = get_barpa_files('BARPA-R', 'ERA5', 'evaluation', freq, variable,
+                                tstart=dt(2010, 1, 1), tend=dt(2010, 1, 1))
 
     ds = xr.open_dataset(files[0])
-    print("Short name: {:}".format(variable))
+    print(f"Short name: {variable}")
 
     attrs_dict = ds[variable].attrs
     for attr in attrs_dict:
-        print("{:}: {:}".format(attr, attrs_dict[attr]))
+        print(f"{attr}: {attrs_dict[attr]}")
 
     return attrs_dict
