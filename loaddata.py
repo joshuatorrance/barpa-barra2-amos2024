@@ -156,7 +156,7 @@ def load_barra2_data(model, freq, variable,
     Returns the BARRA2 data
     
     Parameters:
-       model (str): Model, e.g., AUS-11, AUS-22
+       model (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
        freq (str): Time frequency of the data, e.g. 1hr, day, mon
        variable (str): Variable name, e.g., tas, uas, pr
        version (str): Data release version if multiple available
