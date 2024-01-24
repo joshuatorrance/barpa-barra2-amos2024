@@ -22,6 +22,7 @@ import xarray as xr
 import pandas as pd
 import iris
 import numpy as np
+import cftime
 
 def list_experiments(model):
     """
@@ -443,6 +444,15 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
         tstart = _str2datetime(tstart, start=True)
         tend = _str2datetime(tend, start=False)
         
+        # To accommodate for non-gregorian calendars
+        cal = _get_calendar(files[0])
+        if '360' in cal:
+            tstart = cftime.Datetime360Day(tstart.year, tstart.month, tstart.day, tstart.hour)
+            tend = cftime.Datetime360Day(tend.year, tend.month, tend.day, tend.hour)
+        elif '365' in cal:
+            tstart = cftime.DatetimeNoLeap(tstart.year, tstart.month, tstart.day, tstart.hour)
+            tend = cftime.DatetimeNoLeap(tend.year, tend.month, tend.day, tend.hour)
+            
         out = ds.sel(time=slice(tstart, tend))
 
     if loc is not None:
