@@ -251,7 +251,7 @@ def _str2datetime(t, start=True):
     
     return
 
-def _screen_files(files, tstart=None, tend=None):
+def _screen_files(files, tstart='196001', tend='210101'):
     """
     Filters the list of files based on prescribed time range.
 
@@ -264,15 +264,8 @@ def _screen_files(files, tstart=None, tend=None):
     Returns:
         files (list of str): A list of filenames that match the time range.
     """
-    if tstart is None:
-        tstart = datetime(1900, 1, 1)
-    else:
-        tstart = _str2datetime(tstart, start=True)
-    
-    if tend is None:
-        tend = datetime(2200, 1, 1)
-    else:
-        tend = _str2datetime(tend, start=False)
+    tstart = _str2datetime(tstart, start=True)
+    tend = _str2datetime(tend, start=False)
 
     files_filt = []
     for file in files:
