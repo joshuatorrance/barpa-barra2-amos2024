@@ -156,7 +156,8 @@ def load_barra2_data(model, freq, variable,
                      version="*",
                      tstart='197901', tend='203001',
                     loc=None,
-                    latrange=None, lonrange=None):
+                    latrange=None, lonrange=None,
+                    **read_kwargs):
     """
     Returns the BARRA2 data
 
@@ -170,7 +171,8 @@ def load_barra2_data(model, freq, variable,
        loc (tuple of float), (latitude, longitude) if requesting data closest to a point location
        latrange (tuple of float), (latmin, latmax) if requesting data over a latitude range
        lonrange (tuple of float), (lonmin, lonmax) if requesting data over a longitude range
-
+       read_kwargs (dict): Arguments to pass to xarray.open_mfdataset
+    
     Returns:
        data (xarray.Dataset): Extracted data
 
@@ -181,8 +183,21 @@ def load_barra2_data(model, freq, variable,
     files = get_barra2_files(model, freq, variable, version=version, tstart=tstart, tend=tend)
     assert len(files) > 0, "Cannot find data files"
 
-    ds = xr.open_mfdataset(files, combine='nested', concat_dim='time',parallel=True,
-                           coords='minimal', data_vars='minimal', compat='override')
+    # Define some default keys to pass to mf_dataset
+    # If key appears in read_kwargs it will override the default
+    read_kwargs_default = {
+        "combine": "nested",
+        "concat_dim": "time",
+        "parallel": True,
+        "coords": "minimal",
+        "data_vars": "minimal",
+        "compat": "override",
+    }
+    for key in read_kwargs_default:
+        if not key in read_kwargs:
+            read_kwargs[key] = read_kwargs_default[key]
+            
+    ds = xr.open_mfdataset(files, **read_kwargs)
 
     if loc is not None:
         lat0 = loc[0]
@@ -424,7 +439,8 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
         loc (tuple of float), (latitude, longitude) if requesting data closest to a point location
         latrange (tuple of float), (latmin, latmax) if requesting data over a latitude range
         lonrange (tuple of float), (lonmin, lonmax) if requesting data over a longitude range
-            
+        read_kwargs (dict): Arguments to pass to xarray.open_mfdataset
+    
     Returns:
        data (xarray.Dataset): Extracted data
 
