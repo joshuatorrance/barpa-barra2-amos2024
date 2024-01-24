@@ -76,8 +76,8 @@ def make_barra2_dirpath(model, freq):
     
 def get_barra2_files(model, freq, variable,
                      version='*',
-                     tstart=None,
-                     tend=None):
+                     tstart='197901',
+                     tend='203001'):
     """
     Returns all matching BARRA-R2 files in the NCI data collection.
 
@@ -153,7 +153,7 @@ def list_barra2_freqs(model):
 
 def load_barra2_data(model, freq, variable,
                      version="*",
-                    tstart=None, tend=None,
+                     tstart='197901', tend='203001',
                     loc=None,
                     latrange=None, lonrange=None):
     """
@@ -327,7 +327,8 @@ def make_barpa_dirpath(rcm, gcm, scenario, freq):
 
 def get_barpa_files(rcm, gcm, scenario, freq, variable,
                     version="*",
-                    tstart=None, tend=None):
+                    tstart='196001', 
+                    tend='210101'):
     """
     Returns all the matching BARPA files in the NCI data collection.
 
@@ -409,7 +410,7 @@ def _get_calendar(file):
 
 def load_barpa_data(rcm, gcm, scenario, freq, variable,
                     version="*",
-                    tstart=None, tend=None,
+                    tstart='190001', tend='210101',
                     loc=None,
                     latrange=None,
                     lonrange=None):
