@@ -407,7 +407,8 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
                     tstart='190001', tend='210101',
                     loc=None,
                     latrange=None,
-                    lonrange=None):
+                    lonrange=None,
+                    **read_kwargs):
     """
     Returns the BAPRA data.
 
@@ -435,8 +436,20 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
                             tstart=tstart, tend=tend)
     assert len(files) > 0, "Cannot find data files"
 
-    ds = xr.open_mfdataset(files, combine='nested', concat_dim='time', parallel=True,
-                           coords='minimal', data_vars='minimal', compat='override')
+    # Define some default keys to pass to mf_dataset
+    # If key appears in read_kwargs it will override the default
+    read_kwargs_default = {
+        "combine": "nested",
+        "concat_dim": "time",
+        "parallel": True,
+        "coords": "minimal",
+        "data_vars": "minimal",
+        "compat": "override",
+    }
+    for key in read_kwargs_default:
+        if not key in read_kwargs:
+            read_kwargs[key] = read_kwargs_default[key]
+    ds = xr.open_mfdataset(files, **read_kwargs)
 
     if freq == 'fx':
         out = ds
