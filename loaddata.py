@@ -16,11 +16,10 @@
 """
 import os
 from glob import glob
-from datetime import datetime as dt
+from datetime import datetime
 import calendar
 import xarray as xr
 import pandas as pd
-import cftime
 import iris
 import numpy as np
 
@@ -74,6 +73,7 @@ def make_barra2_dirpath(model, freq):
     return rootdir_templ.format(basepath=basepath, domain=domain,
                                 era5_mem=era5_mem, model=model, freq=freq)
 
+    
 def get_barra2_files(model, freq, variable,
                      version='*',
                      tstart=None,
@@ -86,8 +86,8 @@ def get_barra2_files(model, freq, variable,
        freq (str): Time frequency of the data, e.g. 1hr, day, mon
        variable (str): Variable name, e.g., tas, uas, pr
        version (str): Data release version if multiple available
-       tstart (datetime.datetime): Start of the time range
-       tend (datetime.datetime): End of the time range
+       tstart (str): Start of the time range, in yyyymmddHH
+       tend (str): End of the time range, in yyyymmddHH
 
     Returns:
        files (list of str):List of full paths to the files
@@ -103,10 +103,13 @@ def get_barra2_files(model, freq, variable,
         # static data
         files = glob(os.path.join(rootdir, f'{variable}_**.nc'))
     else:
+        tstart = _str2datetime(tstart, start=True)
+        tend = _str2datetime(tend, start=False)
+        
         # non-static data
         # data organised as monthly files
-        tspan = pd.date_range(dt(tstart.year, tstart.month, 1),
-                              dt(tend.year, tend.month, 1), freq='MS')
+        tspan = pd.date_range(datetime(tstart.year, tstart.month, 1),
+                              datetime(tend.year, tend.month, 1), freq='MS')
 
         if len(tspan)==0:
             tspan = pd.date_range(tstart, tend, freq='D')
@@ -161,8 +164,8 @@ def load_barra2_data(model, freq, variable,
        freq (str): Time frequency of the data, e.g. 1hr, day, mon
        variable (str): Variable name, e.g., tas, uas, pr
        version (str): Data release version if multiple available
-       tstart (datetime.datetime): Start of the time range
-       tend (datetime.datetime): End of the time range
+       tstart (str): Start of the time range, in yyyymmddHH format
+       tend (str): End of the time range, in yyyymmddHH format
        loc (tuple of float), (latitude, longitude) if requesting data closest to a point location
        latrange (tuple of float), (latmin, latmax) if requesting data over a latitude range
        lonrange (tuple of float), (lonmin, lonmax) if requesting data over a longitude range
@@ -194,11 +197,13 @@ def load_barra2_data(model, freq, variable,
     if freq == 'fx':
         out = ds
     else:
+        tstart = _str2datetime(tstart, start=True)
+        tend = _str2datetime(tend, start=False)
         out = ds.sel(time=slice(tstart, tend))
 
     return out
 
-def _str2dt(t, start=True):
+def _str2datetime(t, start=True):
     """
     Convert the datetime string to datetime object.
 
@@ -210,32 +215,40 @@ def _str2dt(t, start=True):
     Returns:
         datetime (datetime.datetime): datetime object of the datetime matching t
     """
-    assert len(t) in [4, 6, 8], f"Undefined time range information: {t}"
+    assert len(t) in [4, 6, 8, 10], f"Undefined time range information: {t}"
     if len(t) == 4:
         # Assume yyyy
         y = int(t)
         if start:
-            return dt(y, 1, 1, 0, 0)
+            return datetime(y, 1, 1, 0, 0)
         else:
-            return dt(y, 12, 31, 23, 59, 59)
+            return datetime(y, 12, 31, 23, 59, 59)
 
     elif len(t) == 6:
         # Assume yyyymm
         y = int(t[:4])
         m = int(t[4:])
         if start:
-            return dt(y, m, 1, 0, 0)
+            return datetime(y, m, 1, 0, 0)
         else:
-            return dt(y, m, calendar.monthrange(y, m)[1], 23, 59, 59)
+            return datetime(y, m, calendar.monthrange(y, m)[1], 23, 59, 59)
     elif len(t) == 8:
         # Assume yyyymmdd
         y = int(t[:4])
         m = int(t[4:6])
         d = int(t[6:])
         if start:
-            return dt(y, m, d, 0, 0)
+            return datetime(y, m, d, 0, 0)
         else:
-            return dt(y, m, d, 23, 59, 59)
+            return datetime(y, m, d, 23, 59, 59)
+    elif len(t) == 10:
+        # Assume yyyymmddHH
+        y = int(t[:4])
+        m = int(t[4:6])
+        d = int(t[6:8])
+        H = int(t[8:])
+        return datetime(y, m, d, H, 0)
+    
     return
 
 def _screen_files(files, tstart=None, tend=None):
@@ -245,22 +258,28 @@ def _screen_files(files, tstart=None, tend=None):
     Parameters:
         files (list of str): A list of filenames, assumes that the time information in filename
             exists in *_<t0>-<t1>.nc
-        trange tuple of datetime.datetime: (tstart, tend) Time range, earliest time and latest time
+        tstart (datetime.datetime): Time range, earliest time
+        tend (datetime.datetime): Time range, latest time
 
     Returns:
         files (list of str): A list of filenames that match the time range.
     """
     if tstart is None:
-        tstart = dt(1900, 1, 1)
+        tstart = datetime(1900, 1, 1)
+    else:
+        tstart = _str2datetime(tstart, start=True)
+    
     if tend is None:
-        tend = dt(2200, 1, 1)
+        tend = datetime(2200, 1, 1)
+    else:
+        tend = _str2datetime(tend, start=False)
 
     files_filt = []
     for file in files:
         bn = os.path.basename(file)
         timerange = os.path.splitext(bn)[0].split("_")[-1]
-        t0 = _str2dt(timerange.split("-")[0], start=True)
-        t1 = _str2dt(timerange.split("-")[1], start=False)
+        t0 = _str2datetime(timerange.split("-")[0], start=True)
+        t1 = _str2datetime(timerange.split("-")[1], start=False)
 
         if t1 < tstart:
             #print("{:} < {:}".format(t1, tstart))
@@ -319,8 +338,8 @@ def get_barpa_files(rcm, gcm, scenario, freq, variable,
         freq (str): Time frequency of data, e.g., 1hr, day, mon
         variable (str): Variable name, e.g. tas, uas, pr
         version (str): Data release version if multiple available
-        tstart (datetime.datetime): Start of the time period
-        tend (datetime.datetime): End of the time period
+        tstart (str): Start of the time period, in yyyymmddHH format
+        tend (str): End of the time period, in yyyymmddHH format
 
     Returns:
        files (list of str): List of full paths to the files
@@ -337,7 +356,7 @@ def get_barpa_files(rcm, gcm, scenario, freq, variable,
 
     if freq == 'fx':
         return files
-
+    
     files = _screen_files(files, tstart=tstart, tend=tend)
 
     return files
@@ -404,12 +423,12 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
         freq (str): Time frequency of data, e.g., 1hr, day, mon
         variable (str): Variable name, e.g. tas, uas, pr
         version (str): Data release version if multiple available
-        tstart (datetime.datetime): Start of the time period
-        tend (datetime.datetime): End of the time period
+        tstart (str): Start of the time period, in yyyymmddHH format
+        tend (str): End of the time period, in yyyymmddHH format
         loc (tuple of float), (latitude, longitude) if requesting data closest to a point location
         latrange (tuple of float), (latmin, latmax) if requesting data over a latitude range
         lonrange (tuple of float), (lonmin, lonmax) if requesting data over a longitude range
-
+            
     Returns:
        data (xarray.Dataset): Extracted data
 
@@ -421,28 +440,15 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
                             tstart=tstart, tend=tend)
     assert len(files) > 0, "Cannot find data files"
 
-    cal = _get_calendar(files[0])
-    if 'gregorian' in cal:
-        tstart = dt(1900, 1, 1) if tstart is None else tstart
-        tend = dt(2200, 1, 1) if tend is None else tend
-    elif '360' in cal:
-        tstart = cftime.Datetime360Day(1900, 1, 1) if tstart is None else \
-            cftime.Datetime360Day(tstart.year, tstart.month, tstart.day, tstart.hour)
-
-        tend = cftime.Datetime360Day(2200, 1, 1) if tend is None else \
-            cftime.Datetime360Day(tend.year, tend.month, tend.day, tend.hour)
-    elif '365' in cal:
-        tstart = cftime.DatetimeAllLeap(1900, 1, 1) if tstart is None else \
-            cftime.DatetimeNoLeap(tstart.year, tstart.month, tstart.day, tstart.hour)
-        tend = cftime.DatetimeAllLeap(2200, 1, 1) if tend is None else \
-            cftime.DatetimeNoLeap(tend.year, tend.month, tend.day, tend.hour)
-
     ds = xr.open_mfdataset(files, combine='nested', concat_dim='time', parallel=True,
                            coords='minimal', data_vars='minimal', compat='override')
 
     if freq == 'fx':
         out = ds
     else:
+        tstart = _str2datetime(tstart, start=True)
+        tend = _str2datetime(tend, start=False)
+        
         out = ds.sel(time=slice(tstart, tend))
 
     if loc is not None:
@@ -472,10 +478,10 @@ def whatis(freq, variable, model='BARRA2'):
     """
     if model == 'BARRA2':
         files = get_barra2_files('BARRA-R2', freq, variable,
-                                 tstart=dt(2010, 1, 1), tend=dt(2010, 1, 1))
+                                 tstart='20100101', tend='20100101')
     else:
         files = get_barpa_files('BARPA-R', 'ERA5', 'evaluation', freq, variable,
-                                tstart=dt(2010, 1, 1), tend=dt(2010, 1, 1))
+                                tstart='20100101', tend='20100101')
 
     ds = xr.open_dataset(files[0])
     print(f"Short name: {variable}")
