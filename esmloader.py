@@ -27,91 +27,161 @@ import cftime
 
 
 class EsmCat:
+    
     def __init__(self, collection):
+        """
+        Initialise the object.
+        
+        Parameters:
+            collection (str): Either BARRA2 or BARPA
+        
+        Returns:
+            EsmCat object
+        """
+        
         self.collection=collection
+        
         catalog_files={"BARPA":"/g/data/dk92/catalog/v2/esm/barpa-py18/catalog.json",
                        "BARRA2":"/g/data/dk92/catalog/v2/esm/barra2-ob53/catalog.json"}
+        
         self.data_catalog = intake.open_esm_datastore(catalog_files[self.collection])
         
         self.keys=list(self.data_catalog.df.columns)
         self.keyvals={}
+        
         for col in self.keys:
             self.keyvals[col]=self.data_catalog.df[col].unique()
             
-    def get_values(self,key):
+    def get_values(self, key):
+        """
+        Returns the list of possible values for a given key.
+        
+        Parameters:
+            key (str): Key such as source_id, domain_id, freq, variable_id, etc
+            
+        Returns:
+            list of str: All possible values for a given key.
+        """
         return(list(self.data_catalog.df[key].unique()))
             
-    def whatis(self,freq,var_name):
+    def whatis(self, freq, variable_id):
+        """
+        Prints the metadata for this variable_id
+
+        Parameters:
+            freq (str): Time frequency of the variable, e.g., 1hr, day
+            variable_id (str): Variable name
+
+        Returns
+            dict: Dictionary containing the variable attributes
+        """
         query = dict(
-            variable_id=[var_name],
+            variable_id=[variable_id],
             freq=[freq],
         )
+        
         catalog_subset = self.data_catalog.search(**query)
         files=catalog_subset.df.path
         ds = xr.open_dataset(files[0])
-        print(f"Short name: {var_name}")
-        attrs_dict = ds[var_name].attrs
+        
+        print(f"Short name: {variable_id}")
+        attrs_dict = ds[variable_id].attrs
+        
         for attr in attrs_dict:
             print(f"{attr}: {attrs_dict[attr]}")
-        return
+            
+        return(attr)
 
-    def list_barra2_variables(self,source_id_in,freq_in):
+    def list_barra2_variables(self, source_id_in, freq_in):
         """
         Prints a listing of the variables available for BARRA2 model.
 
         Parameters:
-            model (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
-           freq (str): Time frequency of the data, e.g. 1hr, day, mon
+            source_id_in (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
+            freq_in (str): Time frequency of the data, e.g. 1hr, day, mon
+            
+        Returns:
+            list of str: List of variable_id
         """
             
         query = dict(
             source_id=[source_id_in],
             freq=[freq_in],
         )
+        
         catalog_subset = self.data_catalog.search(**query)
-        varlist=list(catalog_subset.df.variable_id.unique())
+        varlist = list(catalog_subset.df.variable_id.unique())
+        
         print(", ".join(varlist))
+        
         return(varlist)
     
-    def get_barra2_files(self,source_id_in, freq_in, variable_in,
+    def get_barra2_files(self, source_id_in, freq_in, variable_id_in,
                          version='*',
                          tstart=19790101,
                          tend=20300101):  
-        tstart_in=int(tstart)
-        tend_in=int(tend)
+        """
+        Returns all matching BARRA-R2 files in the NCI data collection.
 
+        Parameters:
+           source_id_in (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
+           freq_in (str): Time frequency of the data, e.g. 1hr, day, mon
+           variable_id_in (str): Variable name, e.g., tas, uas, pr
+           version (str): Data release version if multiple available
+           tstart (integer): Start of the time range, in yyymmdd
+           tend (integer): End of the time range, in yyyymmdd
+
+        Returns:
+           list of str: List of full paths to the files
+        """
         query = dict(
                 source_id=[source_id_in],
                 freq=[freq_in],
-                variable_id=[variable_in],)
+                variable_id=[variable_id_in],)
         
-        if tstart_in != 19790101 or tend_in != 20300101:    
-            full_time_range=self.keyvals["time_range"]
-            time_range_list=self.get_time_range(tstart_in,tend_in,full_time_range)    
-            query["time_range"]=time_range_list
+        if tstart != 19790101 or tend != 20300101:    
+            full_time_range = self.keyvals["time_range"]
+            time_range_list = self.get_time_range(tstart, tend, full_time_range)
+            query["time_range"] = time_range_list
         
         catalog_subset = self.data_catalog.search(**query)
-        files=list(catalog_subset.df.path)
+        
+        files = list(catalog_subset.df.path)
         files.sort()
+        
         return(catalog_subset,files)    
 
-    def get_time_range(self,tstart, tend,time_range):
+    def get_time_range(self, tstart, tend, time_range_list):
+        """
+        Filter the given list of time_range based on tstart and tend.
+        
+        Parameters:
+            tstart (integer): Start of the time range in yyyymmdd or yyyymm
+            tend (integer): End of the time range in yyyymmdd or yyyymm
+            time_range_list (list): List of time range, each time range as yyyymm-yyyymm
+            
+        Returns:
+            list of str: List of time range filtered from time_range_list
+        """
+        
         start_date = datetime.strptime(str(tstart)[:6], "%Y%m")
         end_date = datetime.strptime(str(tend)[:6], "%Y%m")
-        out_time_range=[]    
-        for curdate in time_range:
+        out_time_range_list = []
+        
+        for curdate in time_range_list:
             if curdate == 'na':
                 continue
-            cur_time_range=curdate.split("-")
+            cur_time_range = curdate.split("-")
+            
             for cur_time in cur_time_range:
-                tmp=datetime.strptime(str(cur_time), "%Y%m")                                 
+                tmp = datetime.strptime(str(cur_time), "%Y%m")
+                
                 if start_date <= tmp <= end_date:
-#                   print("catch")
-                   out_time_range.append(curdate)
-        return(list(set(out_time_range)))
+                    out_time_range_list.append(curdate)
+    
+        return(list(set(out_time_range_list)))
 
-
-    def load_barra2_data(self,model, freq, variable,
+    def load_barra2_data(self, source_id_in, freq_in, variable_id,
                      version="*",
                      tstart=19790101, tend=20300101,
                     loc=None,
@@ -121,27 +191,22 @@ class EsmCat:
         Returns the BARRA2 data
 
         Parameters:
-           model (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
-           freq (str): Time frequency of the data, e.g. 1hr, day, mon
-           variable (str): Variable name, e.g., tas, uas, pr
+           source_id_in (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
+           freq_in (str): Time frequency of the data, e.g. 1hr, day, mon
+           variable_id (str): Variable id, e.g., tas, uas, pr
            version (str): Data release version if multiple available
-           tstart (str): Start of the time range, in yyyymmddHH format
-           tend (str): End of the time range, in yyyymmddHH format
+           tstart (integer): Start of the time range, in yyyymmddHH format
+           tend (integer): End of the time range, in yyyymmddHH format
            loc (tuple of float), (latitude, longitude) if requesting data closest to a point location
            latrange (tuple of float), (latmin, latmax) if requesting data over a latitude range
            lonrange (tuple of float), (lonmin, lonmax) if requesting data over a longitude range
            read_kwargs (dict): Arguments to pass to xarray.open_mfdataset
            
         Returns:
-           data (xarray.Dataset): Extracted data
-
-        Note: model, freq, variable as per labels in
-            /g/data/ob53/BARRA2/output/reanalysis/[model]/BOM/ERA5/
-            historical/*/BARRA-R2/v1/[freq]/[variable]/[version]
+           xarray.Dataset: Extracted data
         """
-
-        
-        catalog_subset,files = self.get_barra2_files(model, freq, variable, version=version, tstart=tstart, tend=tend)
+        catalog_subset,files = self.get_barra2_files(source_id_in, freq_in, variable_id,
+                                                     version=version, tstart=tstart, tend=tend)
         assert len(files) > 0, "Cannot find data files"
 
     # Define some default keys to pass to mf_dataset
@@ -154,6 +219,7 @@ class EsmCat:
             "data_vars": "minimal",
             "compat": "override",
         }
+        
         for key in read_kwargs_default:
             if not key in read_kwargs:
                 read_kwargs[key] = read_kwargs_default[key]
@@ -172,11 +238,11 @@ class EsmCat:
         if lonrange is not None:
             ds = ds.sel(lon=slice(lonrange[0], lonrange[1]))
 
-        if freq == 'fx':
+        if freq_in == 'fx':
             out = ds
         else:
-            tstart = self._str2datetime(tstart, start=True)
-            tend = self._str2datetime(tend, start=False)
+            tstart = self._str2datetime(str(tstart), start=True)
+            tend = self._str2datetime(str(tend), start=False)
             out = ds.sel(time=slice(tstart, tend))
 
         return (out)
@@ -191,7 +257,7 @@ class EsmCat:
                 else return the latest time for that year, month, day or hour
 
         Returns:
-            datetime (datetime.datetime): datetime object of the datetime matching t
+            datetime.datetime: datetime matching t
         """
         assert len(t) in [4, 6, 8, 10], f"Undefined time range information: {t}"
         if len(t) == 4:
@@ -229,62 +295,84 @@ class EsmCat:
     
         return
     
-    def get_barpa_files(self,source_id_in, driving_source_id_in, driving_experiment_id_in, freq_in, variable_in,
+    def get_barpa_files(self, source_id_in, driving_source_id_in, 
+                    driving_experiment_id_in, freq_in, variable_id_in,
                     version="*",
                     tstart=19000101, 
                     tend=21010101):
-        tstart_in=int(tstart)
-        tend_in=int(tend)
+        """
+        Returns all the matching BARPA files in the NCI data collection.
+
+        Parameters:
+            source_id_in (str): Regional model, e.g. BARPA-R, BARPA-C
+            driving_source_id_in (str): Driving GCM name, e.g. ACCESS-CM2
+            driving_experiment_id_in (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
+            freq_in (str): Time frequency of data, e.g., 1hr, day, mon
+            variable_id_in (str): Variable name, e.g. tas, uas, pr
+            version (str): Data release version if multiple available
+            tstart (integer): Start of the time period, in yyyymmdd format
+            tend (integer): End of the time period, in yyyymmdd format
+
+        Returns:
+           list of str: List of full paths to the files
+    """ 
         query = dict(
             source_id=[source_id_in],
             driving_source_id=[driving_source_id_in],
             driving_experiment_id=[driving_experiment_id_in],
             freq=[freq_in],
-            variable_id=[variable_in],
+            variable_id=[variable_id_in],
         )
-        if tstart_in != 19900101 or tend_in != 21010101:
+        
+        if tstart != 19900101 or tend != 21010101:
             full_time_range=self.keyvals["time_range"]
-            time_range_list=self.get_time_range(tstart_in,tend_in,full_time_range)
-            query["time_range"]=time_range_list
+            time_range_list=self.get_time_range(tstart, tend, full_time_range)
+            time_range_list.sort()
+            query["time_range"] = time_range_list
 
         catalog_subset = self.data_catalog.search(**query)
+        
         files=list(catalog_subset.df.path)
         files.sort()
+        
         return(catalog_subset,files)
 
     
-    def load_barpa_data(self,rcm, gcm, scenario, freq, variable,
-                    version="*",
-                    tstart='19000101', tend='21010101',
-                    loc=None,
-                    latrange=None,
-                    lonrange=None,
-                    **read_kwargs):
+    def load_barpa_data(self, source_id_in, driving_source_id_in, 
+                        driving_experiment_id_in, freq_in, variable_id_in,
+                        version="*",
+                        tstart=19000101,
+                        tend=21010101,
+                        loc=None,
+                        latrange=None,
+                        lonrange=None,
+                        **read_kwargs):
         """
         Returns the BAPRA data.
 
         Parameters:
-            rcm (str): Regional model, e.g. BARPA-R, BARPA-C
-            gcm (str): Driving GCM name, e.g. ACCESS-CM2
-            scenario (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
-            freq (str): Time frequency of data, e.g., 1hr, day, mon
-            variable (str): Variable name, e.g. tas, uas, pr
+            source_id_in (str): Regional model, e.g. BARPA-R, BARPA-C
+            driving_source_id_in (str): Driving GCM name, e.g. ACCESS-CM2
+            driving_experiment_id_in (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
+            freq_in (str): Time frequency of data, e.g., 1hr, day, mon
+            variable_id_in (str): Variable id, e.g. tas, uas, pr
             version (str): Data release version if multiple available
-            tstart (str): Start of the time period, in yyyymmddHH format
-            tend (str): End of the time period, in yyyymmddHH format
+            tstart (integer): Start of the time period, in yyyymmddHH format
+            tend (integer): End of the time period, in yyyymmddHH format
             loc (tuple of float), (latitude, longitude) if requesting data closest to a point location
             latrange (tuple of float), (latmin, latmax) if requesting data over a latitude range
             lonrange (tuple of float), (lonmin, lonmax) if requesting data over a longitude range
             read_kwargs (dict): Arguments to pass to xarray.open_mfdataset
     
         Returns:
-           data (xarray.Dataset): Extracted data
-
-        Note: model, freq, variable as per labels in
-            /g/data/py18/BARPA/output/CMIP6/DD/[domain]/BOM/[gcm]/[scenario]/
-            [ens]/[rcm]/v1-r1/[freq]/[variable]/[version]
+           xarray.Dataset: Extracted data
         """
-        catalog_subset,files = self.get_barpa_files(rcm, gcm, scenario, freq, variable, version=version,tstart=tstart, tend=tend)
+        catalog_subset,files = self.get_barpa_files(source_id_in, driving_source_id_in, 
+                                                    driving_experiment_id_in, freq_in, 
+                                                    variable_id_in, 
+                                                    version=version, 
+                                                    tstart=tstart, tend=tend)
+        
         assert len(files) > 0, "Cannot find data files"
 
         # Define some default keys to pass to mf_dataset
@@ -297,19 +385,20 @@ class EsmCat:
             "data_vars": "minimal",
             "compat": "override",
         }
+        
         for key in read_kwargs_default:
             if not key in read_kwargs:
                 read_kwargs[key] = read_kwargs_default[key]
         ds = xr.open_mfdataset(files, **read_kwargs)
 #        ds = catalog_subset.to_dataset_dict(cdf_kwargs=read_kwargs)                        
 
-        if freq == 'fx':
+        if freq_in == 'fx':
             out = ds
         else:
-            tstart = self._str2datetime(tstart, start=True)
-            tend = self._str2datetime(tend, start=False)
+            tstart = self._str2datetime(str(tstart), start=True)
+            tend = self._str2datetime(str(tend), start=False)
         
-        # To accommodate for non-gregorian calendars
+            # To accommodate for non-gregorian calendars
             cal = self._get_calendar(files[0])
             if '360' in cal:
                 tstart = cftime.Datetime360Day(tstart.year, tstart.month, tstart.day, tstart.hour)
@@ -341,7 +430,7 @@ class EsmCat:
             file (str): Path to the netcdf file
 
         Returns:
-            calendar_name (str): Name of the calendar type in this file
+            str: Name of the calendar type in this file
         """
         cube = iris.load(file)
         return cube[0].coords('time')[0].units.calendar
