@@ -24,19 +24,19 @@ import iris
 import numpy as np
 import cftime
 
-def list_experiments(model):
+def list_experiments(collection):
     """
     Prints listing of experiments
 
     Parameters:
-        model (str): Model, either BARRA2 or BARPA
+        collection (str): Collection name, either BARRA2 or BARPA
     """
 
-    if model == 'BARRA2':
-        rootdir = "/g/data/ob53/BARRA2/output/reanalysis/{domain}/BOM/ERA5/historical/{era5_mem}/{model}"
-        expts = glob("/g/data/ob53/BARRA2/output/reanalysis/*/BOM/ERA5/historical/*/*")
+    if collection == 'BARRA2':
+        rootdir = "/g/data/ob53/BARRA2/output/reanalysis/{domain_id}/BOM/{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{source_id}"
+        expts = glob("/g/data/ob53/BARRA2/output/reanalysis/*/BOM/*/*/*/*")
     else:
-        rootdir = "/g/data/py18/BARPA/output/CMIP6/DD/{domain}/BOM/{gcm}/{scenario}/{ens}/{rcm}"
+        rootdir = "/g/data/py18/BARPA/output/CMIP6/DD/{domain_id}/BOM/{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{soruce_id}"
         expts = glob("/g/data/py18/BARPA/output/CMIP6/DD/*/BOM/*/*/*/*")
 
     toks = rootdir.split("/")
@@ -47,35 +47,45 @@ def list_experiments(model):
             columns.append(tok)
             indexes.append(i)
 
-    print("   ".join(columns))
+    columns_formatted = ['{0: <23}'.format(s) for s in columns]
+    print(" ".join(columns_formatted))
     for expt in expts:
         toks = expt.split("/")
-        print("   ".join(np.array(toks)[indexes]))
+        toks_formatted = ['{0: <23}'.format(s) for s in np.array(toks)[indexes]]
+        print(" ".join(toks_formatted))
 
-def make_barra2_dirpath(model, freq):
+def make_barra2_dirpath(source_id_in, freq_in):
     """
     Returns path to the BARRA2 data directory.
 
     Parameters:
-        model (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
-       freq (str): Time frequency of the data, e.g. 1hr, day, mon
+        source_id_in (str): Model name, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
+        freq_in (str): Time frequency of the data, e.g. 1hr, day, mon
 
     Returns:
-       path (str): Directory path
+        str: Directory path
     """
     basepath = '/g/data/ob53/BARRA2/output'
-    rootdir_templ = "{basepath}/reanalysis/{domain}/BOM/ERA5/historical/{era5_mem}/{model}/v1/{freq}"
+    
+    rootdir_templ = "{basepath}/reanalysis/{domain_id}/BOM/{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{source_id}/v1/{freq}"
     model_dict = {'BARRA-R2': ("hres", "AUS-11"),
                   'BARRA-RE2': ("eda", "AUS-22"),
                   'BARRA-C2': ("hres", 'AUS-04')}
 
-    era5_mem = model_dict[model][0]
-    domain = model_dict[model][1]
-    return rootdir_templ.format(basepath=basepath, domain=domain,
-                                era5_mem=era5_mem, model=model, freq=freq)
+    driving_source_id = "ERA5"
+    driving_experiment_id = "historical"
+    driving_variant_label = model_dict[source_id_in][0]
+    domain_id = model_dict[source_id_in][1]
+    return rootdir_templ.format(basepath=basepath, 
+                                domain_id=domain_id,
+                                driving_source_id=driving_source_id,
+                                driving_experiment_id=driving_experiment_id,
+                                driving_variant_label=driving_variant_label, 
+                                source_id=source_id_in, 
+                                freq=freq_in)
 
     
-def get_barra2_files(model, freq, variable,
+def get_barra2_files(source_id_in, freq_in, variable_id_in,
                      version='*',
                      tstart='197901',
                      tend='203001'):
@@ -83,24 +93,20 @@ def get_barra2_files(model, freq, variable,
     Returns all matching BARRA-R2 files in the NCI data collection.
 
     Parameters:
-       model (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
-       freq (str): Time frequency of the data, e.g. 1hr, day, mon
-       variable (str): Variable name, e.g., tas, uas, pr
+       source_id_in (str): Model name, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
+       freq_in (str): Time frequency of the data, e.g. 1hr, day, mon
+       variable_id_in (str): Variable name, e.g., tas, uas, pr
        version (str): Data release version if multiple available
        tstart (str): Start of the time range, in yyyymmddHH
        tend (str): End of the time range, in yyyymmddHH
 
     Returns:
-       files (list of str):List of full paths to the files
-
-    Note: model, freq, variable as per labels in
-        /g/data/ob53/BARRA2/output/reanalysis/[domain]/BOM/ERA5/
-        historical/*/[model]/v1/[freq]/[variable]/[version]
+       list of str: List of full paths to the files
     """
-    rootdir = os.path.join(make_barra2_dirpath(model, freq), variable, version)
+    rootdir = os.path.join(make_barra2_dirpath(source_id_in, freq_in), variable_id_in, version)
 
     files = []
-    if freq == 'fx':
+    if freq_in == 'fx':
         # static data
         files = glob(os.path.join(rootdir, f'{variable}_**.nc'))
     else:
@@ -116,22 +122,22 @@ def get_barra2_files(model, freq, variable,
             tspan = pd.date_range(tstart, tend, freq='D')
 
         for time in tspan:
-            files += glob(os.path.join(rootdir, f'{variable}_*_{time.strftime("%Y%m")}-*.nc'))
+            files += glob(os.path.join(rootdir, f'{variable_id_in}_*_{time.strftime("%Y%m")}-*.nc'))
 
     files = list(set(files))
     files.sort()
 
     return files
 
-def list_barra2_variables(model, freq):
+def list_barra2_variables(source_id_in, freq_in):
     """
     Prints a listing of the variables available for BARRA2 model.
 
     Parameters:
-        model (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
-       freq (str): Time frequency of the data, e.g. 1hr, day, mon
+        source_id_in (str): Model name, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
+        freq_in (str): Time frequency of the data, e.g. 1hr, day, mon
     """
-    rootdir = make_barra2_dirpath(model, freq)
+    rootdir = make_barra2_dirpath(source_id_in, freq_in)
 
     varlist = os.listdir(rootdir)
     print(", ".join(varlist))
@@ -152,7 +158,7 @@ def list_barra2_freqs(model):
 
     return freqlist
 
-def load_barra2_data(model, freq, variable,
+def load_barra2_data(source_id_in, freq_in, variable_id_in,
                      version="*",
                      tstart='197901', tend='203001',
                     loc=None,
@@ -162,9 +168,9 @@ def load_barra2_data(model, freq, variable,
     Returns the BARRA2 data
 
     Parameters:
-       model (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
-       freq (str): Time frequency of the data, e.g. 1hr, day, mon
-       variable (str): Variable name, e.g., tas, uas, pr
+       source_id_in (str): Model, e.g., BARRA-R2, BARRA-RE2, BARRA-C2
+       freq_in (str): Time frequency of the data, e.g. 1hr, day, mon
+       variable_id_in (str): Variable name, e.g., tas, uas, pr
        version (str): Data release version if multiple available
        tstart (str): Start of the time range, in yyyymmddHH format
        tend (str): End of the time range, in yyyymmddHH format
@@ -174,13 +180,10 @@ def load_barra2_data(model, freq, variable,
        read_kwargs (dict): Arguments to pass to xarray.open_mfdataset
     
     Returns:
-       data (xarray.Dataset): Extracted data
-
-    Note: model, freq, variable as per labels in
-        /g/data/ob53/BARRA2/output/reanalysis/[model]/BOM/ERA5/
-        historical/*/BARRA-R2/v1/[freq]/[variable]/[version]
+        xarray.Dataset: Extracted data
     """
-    files = get_barra2_files(model, freq, variable, version=version, tstart=tstart, tend=tend)
+    files = get_barra2_files(source_id_in, freq_in, variable_id_in, 
+                             version=version, tstart=tstart, tend=tend)
     assert len(files) > 0, "Cannot find data files"
 
     # Define some default keys to pass to mf_dataset
@@ -210,7 +213,7 @@ def load_barra2_data(model, freq, variable,
     if lonrange is not None:
         ds = ds.sel(lon=slice(lonrange[0], lonrange[1]))
 
-    if freq == 'fx':
+    if freq_in == 'fx':
         out = ds
     else:
         tstart = _str2datetime(tstart, start=True)
@@ -301,18 +304,18 @@ def _screen_files(files, tstart='196001', tend='210101'):
 
     return files_filt
 
-def make_barpa_dirpath(rcm, gcm, scenario, freq):
+def make_barpa_dirpath(source_id_in, driving_source_id_in, driving_experiment_id_in, freq_in):
     """
     Returns path to the BARPA data directory.
 
     Parameters:
-        rcm (str): Regional model, e.g. BARPA-R, BARPA-C
-        gcm (str): Driving GCM name, e.g. ACCESS-CM2
-        scenario (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
-        freq (str): Time frequency of data, e.g., 1hr, day, mon
+        source_id_in (str): Regional model, e.g. BARPA-R, BARPA-C
+        driving_source_id_in (str): Driving GCM name, e.g. ACCESS-CM2
+        driving_experiment_id (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
+        freq_in (str): Time frequency of data, e.g., 1hr, day, mon
 
     Returns:
-        path (str): Directory path
+        str: Directory path
     """
     model_dict = {'BARPA-R': ('AUS-15'),
                   'BARPA-C': ('AUS-04')}
@@ -327,14 +330,20 @@ def make_barpa_dirpath(rcm, gcm, scenario, freq):
            'MPI-ESM1-2-HR': 'r1i1p1f1'}
 
     basepath = '/g/data/py18/BARPA/output'
-    rootdir_templ = "{basepath}/CMIP6/DD/{domain}/BOM/{gcm}/{scenario}/{ens}/{rcm}/v1-r1/{freq}"
-    domain = model_dict[rcm]
-    ens = gcm_ens[gcm]
+    rootdir_templ = "{basepath}/CMIP6/DD/{domain_id}/BOM/{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{source_id}/v1-r1/{freq}"
+    domain_id = model_dict[source_id_in]
+    driving_variant_label = gcm_ens[driving_source_id_in]
 
-    return rootdir_templ.format(basepath=basepath, domain=domain, gcm=gcm,
-                                scenario=scenario, ens=ens, rcm=rcm, freq=freq)
+    return rootdir_templ.format(basepath=basepath, domain_id=domain_id, 
+                                driving_source_id=driving_source_id_in,
+                                driving_experiment_id=driving_experiment_id_in, 
+                                driving_variant_label=driving_variant_label, 
+                                source_id=source_id_in, 
+                                freq=freq_in)
 
-def get_barpa_files(rcm, gcm, scenario, freq, variable,
+def get_barpa_files(source_id_in, driving_source_id_in, 
+                    driving_experiment_id_in, freq_in, 
+                    variable_id_in,
                     version="*",
                     tstart='196001', 
                     tend='210101'):
@@ -342,62 +351,72 @@ def get_barpa_files(rcm, gcm, scenario, freq, variable,
     Returns all the matching BARPA files in the NCI data collection.
 
     Parameters:
-        rcm (str): Regional model, e.g. BARPA-R, BARPA-C
-        gcm (str): Driving GCM name, e.g. ACCESS-CM2
-        scenario (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
-        freq (str): Time frequency of data, e.g., 1hr, day, mon
-        variable (str): Variable name, e.g. tas, uas, pr
+        source_id_in (str): Regional model, e.g. BARPA-R, BARPA-C
+        driving_source_id_in (str): Driving GCM name, e.g. ACCESS-CM2
+        driving_experiment_id_in (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
+        freq_in (str): Time frequency of data, e.g., 1hr, day, mon
+        variable_id_in (str): Variable name, e.g. tas, uas, pr
         version (str): Data release version if multiple available
         tstart (str): Start of the time period, in yyyymmddHH format
         tend (str): End of the time period, in yyyymmddHH format
 
     Returns:
-       files (list of str): List of full paths to the files
-
-    Note: model, freq, variable as per labels in
-        /g/data/py18/BARPA/output/CMIP6/DD/[domain]/BOM/[gcm]/[scenario]/
-        [ens]/[rcm]/v1-r1/[freq]/[variable]/[version]
+       list of str: List of full paths to the files
     """
-    datadir = os.path.join( make_barpa_dirpath(rcm, gcm, scenario, freq), variable, version)
+    datadir = os.path.join( make_barpa_dirpath(source_id_in, driving_source_id_in, 
+                                               driving_experiment_id_in, freq_in), 
+                           variable_id_in, version)
 
     # Find all the files within the time range
-    files = glob(os.path.join(datadir, f'{variable}_*.nc'))
+    files = glob(os.path.join(datadir, f'{variable_id_in}_*.nc'))
     files.sort()
 
-    if freq == 'fx':
+    if freq_in == 'fx':
         return files
     
     files = _screen_files(files, tstart=tstart, tend=tend)
 
     return files
 
-def list_barpa_variables(rcm, gcm, scenario, freq):
+def list_barpa_variables(source_id_in, 
+                         driving_source_id_in, 
+                         driving_experiment_id_in, 
+                         freq_in):
     """
     Prints a listing of the variables available for BARPA model.
 
     Parameters:
-        rcm (str): Regional model, e.g. BARPA-R, BARPA-C
-        gcm (str): Driving GCM name, e.g. ACCESS-CM2
-        scenario (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
-        freq (str): Time frequency of data, e.g., 1hr, day, mon
+        source_id_in (str): Regional model, e.g. BARPA-R, BARPA-C
+        driving_source_id_in (str): Driving GCM name, e.g. ACCESS-CM2
+        driving_experiment_id_in (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
+        freq_in (str): Time frequency of data, e.g., 1hr, day, mon
+        
+    Returns:
+        list of str: List of variable_id values.
     """
-    rootdir = make_barpa_dirpath(rcm, gcm, scenario, freq)
+    rootdir = make_barpa_dirpath(source_id_in, 
+                                 driving_source_id_in, 
+                                 driving_experiment_id_in, 
+                                 freq_in)
 
     varlist = os.listdir(rootdir)
     print(", ".join(varlist))
 
     return varlist
 
-def list_barpa_freqs(rcm, gcm, scenario):
+def list_barpa_freqs(source_id_in, driving_source_id_in, driving_experiment_id_in):
     """
     Prints a listing of the time frequency available for BARPA model data.
 
     Parameters:
-        rcm (str): Regional model, e.g. BARPA-R, BARPA-C
-        gcm (str): Driving GCM name, e.g. ACCESS-CM2
-        scenario (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
+        source_id_in (str): Regional model, e.g. BARPA-R, BARPA-C
+        driving_source_id_in (str): Driving GCM name, e.g. ACCESS-CM2
+        driving_experiment_id_in (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
+        
+    Returns:
+        list of str: list of freq values.
     """
-    rootdir = make_barpa_dirpath(rcm, gcm, scenario, 'fx')
+    rootdir = make_barpa_dirpath(source_id_in, driving_source_id_in, driving_experiment_id_in, 'fx')
 
     freqlist = os.listdir(rootdir+'/..')
     print(", ".join(freqlist))
@@ -417,7 +436,11 @@ def _get_calendar(file):
     cube = iris.load(file)
     return cube[0].coords('time')[0].units.calendar
 
-def load_barpa_data(rcm, gcm, scenario, freq, variable,
+def load_barpa_data(source_id_in, 
+                    driving_source_id_in, 
+                    driving_experiment_id_in, 
+                    freq_in, 
+                    variable_id_in,
                     version="*",
                     tstart='190001', tend='210101',
                     loc=None,
@@ -428,11 +451,11 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
     Returns the BAPRA data.
 
     Parameters:
-        rcm (str): Regional model, e.g. BARPA-R, BARPA-C
-        gcm (str): Driving GCM name, e.g. ACCESS-CM2
-        scenario (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
-        freq (str): Time frequency of data, e.g., 1hr, day, mon
-        variable (str): Variable name, e.g. tas, uas, pr
+        source_id_in (str): Regional model, e.g. BARPA-R, BARPA-C
+        driving_source_id_in (str): Driving GCM name, e.g. ACCESS-CM2
+        driving_experiment_id_in (str): GCM experiment, e.g. historical, ssp370, ssp126, evaluation
+        freq_in (str): Time frequency of data, e.g., 1hr, day, mon
+        variable_id_in (str): Variable name, e.g. tas, uas, pr
         version (str): Data release version if multiple available
         tstart (str): Start of the time period, in yyyymmddHH format
         tend (str): End of the time period, in yyyymmddHH format
@@ -442,13 +465,12 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
         read_kwargs (dict): Arguments to pass to xarray.open_mfdataset
     
     Returns:
-       data (xarray.Dataset): Extracted data
-
-    Note: model, freq, variable as per labels in
-        /g/data/py18/BARPA/output/CMIP6/DD/[domain]/BOM/[gcm]/[scenario]/
-        [ens]/[rcm]/v1-r1/[freq]/[variable]/[version]
+       xarray.Dataset: Extracted data
     """
-    files = get_barpa_files(rcm, gcm, scenario, freq, variable, version=version,
+    files = get_barpa_files(source_id_in, driving_source_id_in, 
+                            driving_experiment_id_in, 
+                            freq_in, variable_id_in, 
+                            version=version,
                             tstart=tstart, tend=tend)
     assert len(files) > 0, "Cannot find data files"
 
@@ -467,7 +489,7 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
             read_kwargs[key] = read_kwargs_default[key]
     ds = xr.open_mfdataset(files, **read_kwargs)
 
-    if freq == 'fx':
+    if freq_in == 'fx':
         out = ds
     else:
         tstart = _str2datetime(tstart, start=True)
@@ -497,29 +519,29 @@ def load_barpa_data(rcm, gcm, scenario, freq, variable,
 
     return out
 
-def whatis(freq, variable, model='BARRA2'):
+def whatis(freq_in, variable_id_in, collection='BARRA2'):
     """
     Prints the metadata for this variable
 
     Parameters:
-        freq (str): Time frequency of the variable, e.g., 1hr, day
-        variable (str): Variable name
-        model (str): Which model, either BARRA2 or BARPA
+        freq_in (str): Time frequency of the variable, e.g., 1hr, day
+        variable_id_in (str): Variable name
+        collection (str): Collection name, either BARRA2 or BARPA
 
     Returns
-        attributes (dict): Dictionary containing the variable attributes
+        dict: Dictionary containing the variable attributes
     """
-    if model == 'BARRA2':
-        files = get_barra2_files('BARRA-R2', freq, variable,
+    if collection == 'BARRA2':
+        files = get_barra2_files('BARRA-R2', freq_in, variable_id_in,
                                  tstart='20100101', tend='20100101')
     else:
-        files = get_barpa_files('BARPA-R', 'ERA5', 'evaluation', freq, variable,
+        files = get_barpa_files('BARPA-R', 'ERA5', 'evaluation', freq_in, variable_id_in,
                                 tstart='20100101', tend='20100101')
 
     ds = xr.open_dataset(files[0])
-    print(f"Short name: {variable}")
+    print(f"Short name: {variable_id_in}")
 
-    attrs_dict = ds[variable].attrs
+    attrs_dict = ds[variable_id_in].attrs
     for attr in attrs_dict:
         print(f"{attr}: {attrs_dict[attr]}")
 
