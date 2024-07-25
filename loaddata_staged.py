@@ -81,7 +81,7 @@ def make_barra2_dirpath(model, freq):
     return rootdir_templ.format(basepath=basepath, domain=domain, era5_mem=era5_mem, model=model, freq=freq)
     
 def get_barra2_files(model, freq, variable, 
-                     version='*',
+                     version='v*',
                      tstart=None, 
                      tend=None):
     """
@@ -154,7 +154,7 @@ def list_barra2_freqs(model):
     return freqlist
     
 def load_barra2_data(model, freq, variable, 
-                     version="*",
+                     version="v*",
                     tstart=None, tend=None,
                     loc=None, 
                     latrange=None, lonrange=None):
@@ -310,7 +310,7 @@ def make_barpa_dirpath(rcm, gcm, scenario, freq):
     return rootdir_templ.format(basepath=basepath, domain=domain, gcm=gcm, scenario=scenario, ens=ens, rcm=rcm, freq=freq)
     
 def get_barpa_files(rcm, gcm, scenario, freq, variable, 
-                    version="*",
+                    version="v*",
                     tstart=None, tend=None):
     """
     Returns all the matching BARPA files in the NCI data collection.
@@ -392,7 +392,7 @@ def _get_calendar(file):
     return cube[0].coords('time')[0].units.calendar
 
 def load_barpa_data(rcm, gcm, scenario, freq, variable, 
-                    version="*",
+                    version="v*",
                     tstart=None, tend=None,
                     loc=None,
                     latrange=None,

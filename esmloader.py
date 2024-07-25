@@ -117,7 +117,7 @@ class EsmCat:
         return(varlist)
     
     def get_barra2_files(self, source_id_in, freq_in, variable_id_in,
-                         version='*',
+                         version='v*',
                          tstart=19790101,
                          tend=20300101):  
         """
@@ -182,7 +182,7 @@ class EsmCat:
         return(list(set(out_time_range_list)))
 
     def load_barra2_data(self, source_id_in, freq_in, variable_id,
-                     version="*",
+                     version="v*",
                      tstart=19790101, tend=20300101,
                     loc=None,
                     latrange=None, lonrange=None,
@@ -297,7 +297,7 @@ class EsmCat:
     
     def get_barpa_files(self, source_id_in, driving_source_id_in, 
                     driving_experiment_id_in, freq_in, variable_id_in,
-                    version="*",
+                    version="v*",
                     tstart=19000101, 
                     tend=21010101):
         """
@@ -340,7 +340,7 @@ class EsmCat:
     
     def load_barpa_data(self, source_id_in, driving_source_id_in, 
                         driving_experiment_id_in, freq_in, variable_id_in,
-                        version="*",
+                        version="v*",
                         tstart=19000101,
                         tend=21010101,
                         loc=None,

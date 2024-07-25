@@ -86,7 +86,7 @@ def make_barra2_dirpath(source_id_in, freq_in):
 
     
 def get_barra2_files(source_id_in, freq_in, variable_id_in,
-                     version='*',
+                     version='v*',
                      tstart='197901',
                      tend='203001'):
     """
@@ -159,7 +159,7 @@ def list_barra2_freqs(model):
     return freqlist
 
 def load_barra2_data(source_id_in, freq_in, variable_id_in,
-                     version="*",
+                     version="v*",
                      tstart='197901', tend='203001',
                     loc=None,
                     latrange=None, lonrange=None,
@@ -344,7 +344,7 @@ def make_barpa_dirpath(source_id_in, driving_source_id_in, driving_experiment_id
 def get_barpa_files(source_id_in, driving_source_id_in, 
                     driving_experiment_id_in, freq_in, 
                     variable_id_in,
-                    version="*",
+                    version="v*",
                     tstart='196001', 
                     tend='210101'):
     """
@@ -441,7 +441,7 @@ def load_barpa_data(source_id_in,
                     driving_experiment_id_in, 
                     freq_in, 
                     variable_id_in,
-                    version="*",
+                    version="v*",
                     tstart='190001', tend='210101',
                     loc=None,
                     latrange=None,
