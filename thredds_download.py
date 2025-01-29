@@ -161,7 +161,7 @@ def main():
 
         try:
             print(f'INFO: Downloading {i+1} of {n}: {src_file} -> {new_file}\n')
-            urllib.request.urlretrieve(src_file + "XXX", new_file)
+            urllib.request.urlretrieve(src_file, new_file)
         except (SystemExit, KeyboardInterrupt):
             print("\nInterrupt detected, aborting.")
             break
