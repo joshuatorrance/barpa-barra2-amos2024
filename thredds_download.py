@@ -160,13 +160,15 @@ def main():
             os.makedirs(dst_dir)
 
         try:
-            print(f'INFO: Downloading {i+1} of {N}: {src_file} -> {new_file}\n')
+            print(f'INFO: Downloading {i+1} of {n}: {src_file} -> {new_file}\n')
             urlretrieve(src_file, new_file)
+        except KeyboardInterrupt:
+            print("\nInterrupt detected, aborting.")
+            break
         except:
             # FIXME: Specify an exception type to catch
             print(f'ERROR: Unable to retrieve: {src_file} -> {new_file}')
             error_counter += 1
-            continue
 
     #
     # Finish
