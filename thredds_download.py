@@ -9,7 +9,7 @@
     Extended documentations:
     - BARRA2 reanalysis:  https://opus.nci.org.au/spaces/NDP/pages/264241166/BOM+BARRA2+ob53
     - BARPA projections:  https://opus.nci.org.au/spaces/NDP/pages/264241161/BOM+BARPA+py18
-    
+
   PREREQUISITE
       - Python3.X
       - Extra libraries:
@@ -21,47 +21,62 @@
       Joshua Torrance, joshua.torrance@bom.gov.au, Bureau of Meteorology
 '''
 
-import os, sys
-import loaddata  # https://github.com/joshuatorrance/barpa-barra2-amos2024
+import os
 import argparse
-import threddsclient  # https://github.com/bird-house/threddsclient
 from urllib.request import urlretrieve
+import loaddata  # https://github.com/joshuatorrance/barpa-barra2-amos2024
+import threddsclient  # https://github.com/bird-house/threddsclient
+
 
 def main():
     collections = ['BARRA2', 'BARPA']
-    domain_ids = ['AUS-11', 'AUS-15', 
-                  'AUS-20i', 'AUS-22', 
-                  'AUST-11', 'AUST-15', 
+    domain_ids = ['AUS-11', 'AUS-15',
+                  'AUS-20i', 'AUS-22',
+                  'AUST-11', 'AUST-15',
                   'AUST-22', 'AUST-04']
-    driving_source_ids = ['ACCESS-CM2', 'ACCESS-ESM1-5', 
-                          'ERA5', 'NorESM2-MM', 'EC-Earth3', 
-                          'CESM2', 'CMCC-ESM2', 
+    driving_source_ids = ['ACCESS-CM2', 'ACCESS-ESM1-5',
+                          'ERA5', 'NorESM2-MM', 'EC-Earth3',
+                          'CESM2', 'CMCC-ESM2',
                           'MPI-ESM1-2-HR']
-    driving_experiment_ids = ['historical', 
+    driving_experiment_ids = ['historical',
                               'evaluation',
                               'ssp370',
                               'ssp126']
-    
+
     parser = argparse.ArgumentParser(
         description="Downloads BARRA2 regional reanalysis or BARPA regional projections from NCI THREDDS"
     )
-    
+
     # Adding arguments
     # Data selection arguments
-    parser.add_argument('-C', '--collection', type=str, choices=collections, help='Name of the data collection')
-    parser.add_argument('-d', '--domain', type=str, choices=domain_ids, help='Domain id. Available domains for BARRA2 are AUS-11, AUS-22, AUST-11, AUST-22 and AUST-04. Available domains for BARPA are AUS-15, AUS-20i, AUST-15 and AUST-04')
-    parser.add_argument('-f', '--freq', type=str, help='Time frequency of the data, e.g., 1hr, day, mon')
-    parser.add_argument('-n', '--variable', type=str, help='Variable name, e.g., tas, uas, pr')
-    parser.add_argument('--start', type=str, default='190001', help='Start of the time range, in yyyymm')
-    parser.add_argument('--end', type=str, default='210101', help='End of the time range, in yyyymm')
+    parser.add_argument('-C', '--collection', type=str, choices=collections,
+                        help='Name of the data collection')
+    parser.add_argument('-d', '--domain', type=str, choices=domain_ids,
+                        help='Domain id. Available domains for BARRA2 are AUS-11, AUS-22, '
+                        'AUST-11, AUST-22 and AUST-04. Available domains for BARPA are '
+                        'AUS-15, AUS-20i, AUST-15 and AUST-04')
+    parser.add_argument('-f', '--freq', type=str,
+                        help='Time frequency of the data, e.g., 1hr, day, mon')
+    parser.add_argument('-n', '--variable', type=str,
+                        help='Variable name, e.g., tas, uas, pr')
+    parser.add_argument('--start', type=str, default='190001',
+                        help='Start of the time range, in yyyymm')
+    parser.add_argument('--end', type=str, default='210101',
+                        help='End of the time range, in yyyymm')
 
     # Output arguments
-    parser.add_argument('-l', '--create_list', action='store_true', help='Do not download, only create a text file listing files to be downloaded')
-    parser.add_argument('-o', '--out_dir', type=str, help='Output directory to save the downloaded data files')
-    
+    parser.add_argument('-l', '--create_list', action='store_true',
+                        help='Do not download, only create a text file listing files to be downloaded')
+    parser.add_argument('-o', '--out_dir', type=str,
+                        help='Output directory to save the downloaded data files')
+
     # Only used for BARPA
-    parser.add_argument('-g', '--driving_source', type=str, choices=driving_source_ids, help='Driving GCM name for BARPA only')
-    parser.add_argument('-s', '--driving_experiment', type=str, choices=driving_experiment_ids, help='GCM experiment BARPA only')
+    parser.add_argument('-g', '--driving_source', type=str,
+                        choices=driving_source_ids,
+                        help='Driving GCM name for BARPA only')
+    parser.add_argument('-s', '--driving_experiment', type=str,
+                        choices=driving_experiment_ids,
+                        help='GCM experiment BARPA only')
 
     # Parsing arguments
     args = parser.parse_args()
@@ -71,19 +86,19 @@ def main():
     #
     if args.collection == 'BARRA2':
         data_project = 'ob53'
-        root = loaddata.make_barra2_dirpath(args.domain, 
+        root = loaddata.make_barra2_dirpath(args.domain,
                                             args.freq)
         dirpath = os.path.join(root, args.variable, 'latest')
-        thredds_url = dirpath.replace(f'/g/data/{data_project}/{args.collection}/', 
+        thredds_url = dirpath.replace(f'/g/data/{data_project}/{args.collection}/',
                                       f'https://thredds.nci.org.au/thredds/catalog/{data_project}/')
     else:
         data_project = 'py18'
-        root = loaddata.make_barpa_dirpath(args.domain, 
+        root = loaddata.make_barpa_dirpath(args.domain,
                                          args.driving_source,
                                          args.driving_experiment,
                                          args.freq)
         dirpath = os.path.join(root, args.variable, 'latest')
-        thredds_url = dirpath.replace(f'/g/data/{data_project}/', 
+        thredds_url = dirpath.replace(f'/g/data/{data_project}/',
                                       f'https://thredds.nci.org.au/thredds/catalog/{data_project}/')
 
     thredds_url = os.path.join(thredds_url, 'catalog.html')
@@ -91,7 +106,7 @@ def main():
     out_dir = args.out_dir
     if args.out_dir is None:
         out_dir = os.getcwd()
-        
+
     print(f"INFO: thredds URL: {thredds_url}")
 
     #
@@ -102,7 +117,7 @@ def main():
         filepath = ds.url.split("=")[1]
 
         # check if it is within time range
-        if len(loaddata._screen_files([filepath], tstart=args.start, tend=args.end)) == 0:
+        if len(loaddata.screen_files([filepath], tstart=args.start, tend=args.end)) == 0:
             continue
 
         src_dir = os.path.dirname(filepath)
@@ -123,11 +138,10 @@ def main():
     #
     if args.create_list:
         outfile = os.path.join(out_dir, 'file_list.txt')
-        fout = open(outfile, 'w')
-        for pair in data_pairs:
-            print(pair[0], file=fout)
-            
-        fout.close()
+        with open(outfile, 'w', encoding="utf-8") as fout:
+            for pair in data_pairs:
+                print(pair[0], file=fout)
+
         print(f"INFO: File listing written to {outfile}")
         return
 
@@ -142,11 +156,12 @@ def main():
         dst_dir = os.path.dirname(new_file)
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
-            
+
         try:
             print(f'INFO: Downloading {i+1} of {N}: {src_file} -> {new_file}\n')
             urlretrieve(src_file, new_file)
         except:
+            # FIXME: Specify an exception type to catch
             print(f'ERROR: Unable to retrieve: {src_file} -> {new_file}')
             error_counter += 1
             continue
@@ -154,10 +169,10 @@ def main():
     #
     # Finish
     #
-    Nsuccess = N - error_counter
-    print(f"INFO: {Nsuccess}/{N} of files downloaded, and {error_counter} errors reported")
+    n_success = N - error_counter
+    print(f"INFO: {n_success}/{N} of files downloaded, and {error_counter} errors reported")
 
     return
-    
+
 if __name__ == '__main__':
     main()
