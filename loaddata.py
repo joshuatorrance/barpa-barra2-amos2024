@@ -33,10 +33,12 @@ def list_experiments(collection):
     """
 
     if collection == 'BARRA2':
-        rootdir = "/g/data/ob53/BARRA2/output/reanalysis/{domain_id}/BOM/{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{source_id}"
+        rootdir = "/g/data/ob53/BARRA2/output/reanalysis/{domain_id}/BOM/" \
+            "{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{source_id}"
         expts = glob("/g/data/ob53/BARRA2/output/reanalysis/*/BOM/*/*/*/*")
     else:
-        rootdir = "/g/data/py18/BARPA/output/CMIP6/DD/{domain_id}/BOM/{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{soruce_id}"
+        rootdir = "/g/data/py18/BARPA/output/CMIP6/DD/{domain_id}/BOM/" \
+            "{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{soruce_id}"
         expts = glob("/g/data/py18/BARPA/output/CMIP6/DD/*/BOM/*/*/*/*")
 
     toks = rootdir.split("/")
@@ -69,7 +71,8 @@ def make_barra2_dirpath(id_in, freq_in):
     """
     basepath = '/g/data/ob53/BARRA2/output'
 
-    rootdir_templ = "{basepath}/reanalysis/{domain_id}/BOM/{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{source_id}/v1/{freq}"
+    rootdir_templ = "{basepath}/reanalysis/{domain_id}/BOM/{driving_source_id}/" \
+        "{driving_experiment_id}/{driving_variant_label}/{source_id}/v1/{freq}"
 
     # default
     model_dict = {'BARRA-R2': ("hres", "AUS-11"),
@@ -90,7 +93,8 @@ def make_barra2_dirpath(id_in, freq_in):
         driving_variant_label = domain_id_dict[id_in][0]
         source_id = domain_id_dict[id_in][1]
     else:
-        assert False, f"Unknown {id_in}. Permittable values: BARRA-R2, BARRA-RE2, BARRA-C2, AUS-11, AUST-11, AUS-22, AUST-04"
+        assert False, f"Unknown {id_in}. Permittable values: BARPA-R, BARPA-C, " \
+        "AUS-15, AUST-15, AUS-20i or AUST-04"
 
     driving_source_id = "ERA5"
     driving_experiment_id = "historical"
@@ -133,7 +137,7 @@ def get_barra2_files(id_in, freq_in, variable_id_in,
     files = []
     if freq_in == 'fx':
         # static data
-        files = glob(os.path.join(rootdir, f'{variable}_**.nc'))
+        files = glob(os.path.join(rootdir, f'{variable_id_in}_**.nc'))
     else:
         tstart = _str2datetime(tstart, start=True)
         tend = _str2datetime(tend, start=False)
@@ -227,9 +231,9 @@ def load_barra2_data(id_in, freq_in, variable_id_in,
         "data_vars": "minimal",
         "compat": "override",
     }
-    for key in read_kwargs_default:
+    for key, val in read_kwargs_default.items():
         if not key in read_kwargs:
-            read_kwargs[key] = read_kwargs_default[key]
+            read_kwargs[key] = val
 
     ds = xr.open_mfdataset(files, **read_kwargs)
 
@@ -296,8 +300,8 @@ def _str2datetime(t, start=True):
         y = int(t[:4])
         m = int(t[4:6])
         d = int(t[6:8])
-        H = int(t[8:])
-        return datetime(y, m, d, H, 0)
+        h = int(t[8:])
+        return datetime(y, m, d, h, 0)
 
     return
 
@@ -369,7 +373,8 @@ def make_barpa_dirpath(id_in, driving_source_id_in, driving_experiment_id_in, fr
            'MPI-ESM1-2-HR': 'r1i1p1f1'}
 
     basepath = '/g/data/py18/BARPA/output'
-    rootdir_templ = "{basepath}/CMIP6/DD/{domain_id}/BOM/{driving_source_id}/{driving_experiment_id}/{driving_variant_label}/{source_id}/v1-r1/{freq}"
+    rootdir_templ = "{basepath}/CMIP6/DD/{domain_id}/BOM/{driving_source_id}/" \
+        "{driving_experiment_id}/{driving_variant_label}/{source_id}/v1-r1/{freq}"
 
     driving_variant_label = gcm_ens[driving_source_id_in]
 
@@ -380,7 +385,8 @@ def make_barpa_dirpath(id_in, driving_source_id_in, driving_experiment_id_in, fr
         domain_id = id_in
         source_id = domain_id_dict[id_in]
     else:
-        assert False, f"Unknown {id_in}. Permittable values: BARPA-R, BARPA-C, AUS-15, AUST-15, AUS-20i or AUST-04"
+        assert False, f"Unknown {id_in}. Permittable values: BARPA-R, BARPA-C, " \
+        "AUS-15, AUST-15, AUS-20i or AUST-04"
 
     path = rootdir_templ.format(basepath=basepath, domain_id=domain_id,
                                 driving_source_id=driving_source_id_in,
@@ -539,9 +545,10 @@ def load_barpa_data(id_in,
         "data_vars": "minimal",
         "compat": "override",
     }
-    for key in read_kwargs_default:
+    for key, val in read_kwargs_default.items():
         if not key in read_kwargs:
-            read_kwargs[key] = read_kwargs_default[key]
+            read_kwargs[key] = val
+
     ds = xr.open_mfdataset(files, **read_kwargs)
 
     if freq_in == 'fx':

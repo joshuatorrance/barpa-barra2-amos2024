@@ -44,20 +44,25 @@ def main():
                               'ssp126']
 
     parser = argparse.ArgumentParser(
-        description="Downloads BARRA2 regional reanalysis or BARPA regional projections from NCI THREDDS"
+        description="Downloads BARRA2 regional reanalysis or BARPA regional "
+        "projections from NCI THREDDS"
     )
 
     # Adding arguments
     # Data selection arguments
     parser.add_argument('-C', '--collection', type=str, choices=collections,
+                        required=True,
                         help='Name of the data collection')
     parser.add_argument('-d', '--domain', type=str, choices=domain_ids,
+                        required=True,
                         help='Domain id. Available domains for BARRA2 are AUS-11, AUS-22, '
                         'AUST-11, AUST-22 and AUST-04. Available domains for BARPA are '
                         'AUS-15, AUS-20i, AUST-15 and AUST-04')
     parser.add_argument('-f', '--freq', type=str,
+                        required=True,
                         help='Time frequency of the data, e.g., 1hr, day, mon')
     parser.add_argument('-n', '--variable', type=str,
+                        required=True,
                         help='Variable name, e.g., tas, uas, pr')
     parser.add_argument('--start', type=str, default='190001',
                         help='Start of the time range, in yyyymm')
@@ -67,7 +72,7 @@ def main():
     # Output arguments
     parser.add_argument('-l', '--create_list', action='store_true',
                         help='Do not download, only create a text file listing files to be downloaded')
-    parser.add_argument('-o', '--out_dir', type=str,
+    parser.add_argument('-o', '--out_dir', type=str, default=os.getcwd(),
                         help='Output directory to save the downloaded data files')
 
     # Only used for BARPA
@@ -103,10 +108,6 @@ def main():
 
     thredds_url = os.path.join(thredds_url, 'catalog.html')
 
-    out_dir = args.out_dir
-    if args.out_dir is None:
-        out_dir = os.getcwd()
-
     print(f"INFO: thredds URL: {thredds_url}")
 
     #
@@ -124,7 +125,7 @@ def main():
         basename = os.path.basename(filepath)
 
         # new destination directory
-        new_dst_dir = os.path.join(out_dir, src_dir)
+        new_dst_dir = os.path.join(args.out_dir, src_dir)
         # new file to be created in the new destination directory
         new_file = os.path.join(new_dst_dir, basename)
 
@@ -137,7 +138,7 @@ def main():
     # Write the file listing to file only
     #
     if args.create_list:
-        outfile = os.path.join(out_dir, 'file_list.txt')
+        outfile = os.path.join(args.out_dir, 'file_list.txt')
         with open(outfile, 'w', encoding="utf-8") as fout:
             for pair in data_pairs:
                 print(pair[0], file=fout)
@@ -172,7 +173,6 @@ def main():
     n_success = N - error_counter
     print(f"INFO: {n_success}/{N} of files downloaded, and {error_counter} errors reported")
 
-    return
 
 if __name__ == '__main__':
     main()
