@@ -71,7 +71,8 @@ def main():
 
     # Output arguments
     parser.add_argument('-l', '--create_list', action='store_true',
-                        help='Do not download, only create a text file listing files to be downloaded')
+                        help='Do not download, only create a text file listing '
+                        'files to be downloaded')
     parser.add_argument('-o', '--out_dir', type=str, default=os.getcwd(),
                         help='Output directory to save the downloaded data files')
 
@@ -131,8 +132,8 @@ def main():
 
         data_pairs.append( [ds.download_url(), new_file] )
 
-    N = len(data_pairs)
-    print(f"INFO: {N} files found")
+    n = len(data_pairs)
+    print(f"INFO: {n} files found")
 
     #
     # Write the file listing to file only
@@ -170,8 +171,8 @@ def main():
     #
     # Finish
     #
-    n_success = N - error_counter
-    print(f"INFO: {n_success}/{N} of files downloaded, and {error_counter} errors reported")
+    n_success = n - error_counter
+    print(f"INFO: {n_success}/{n} of files downloaded, and {error_counter} errors reported")
 
 
 if __name__ == '__main__':
