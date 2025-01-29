@@ -23,7 +23,7 @@
 
 import os
 import argparse
-from urllib.request import urlretrieve
+import urllib
 import loaddata  # https://github.com/joshuatorrance/barpa-barra2-amos2024
 import threddsclient  # https://github.com/bird-house/threddsclient
 
@@ -161,12 +161,11 @@ def main():
 
         try:
             print(f'INFO: Downloading {i+1} of {n}: {src_file} -> {new_file}\n')
-            urlretrieve(src_file, new_file)
+            urllib.request.urlretrieve(src_file + "XXX", new_file)
         except (SystemExit, KeyboardInterrupt):
             print("\nInterrupt detected, aborting.")
             break
-        except:
-            # FIXME: Specify an exception type to catch
+        except (urllib.error.HTTPError, urllib.error.ContentTooShortError):
             print(f'ERROR: Unable to retrieve: {src_file} -> {new_file}')
             error_counter += 1
 
