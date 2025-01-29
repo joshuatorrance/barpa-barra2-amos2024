@@ -162,7 +162,7 @@ def main():
         try:
             print(f'INFO: Downloading {i+1} of {n}: {src_file} -> {new_file}\n')
             urlretrieve(src_file, new_file)
-        except KeyboardInterrupt:
+        except (SystemExit, KeyboardInterrupt):
             print("\nInterrupt detected, aborting.")
             break
         except:
