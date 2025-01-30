@@ -24,7 +24,7 @@
 import os
 import argparse
 import urllib
-import loaddata  # https://github.com/joshuatorrance/barpa-barra2-amos2024
+import datapaths # https://github.com/joshuatorrance/barpa-barra2-amos2024
 import threddsclient  # https://github.com/bird-house/threddsclient
 
 
@@ -92,14 +92,14 @@ def main():
     #
     if args.collection == 'BARRA2':
         data_project = 'ob53'
-        root = loaddata.make_barra2_dirpath(args.domain,
+        root = datapaths.make_barra2_dirpath(args.domain,
                                             args.freq)
         dirpath = os.path.join(root, args.variable, 'latest')
         thredds_url = dirpath.replace(f'/g/data/{data_project}/{args.collection}/',
                                       f'https://thredds.nci.org.au/thredds/catalog/{data_project}/')
     else:
         data_project = 'py18'
-        root = loaddata.make_barpa_dirpath(args.domain,
+        root = datapaths.make_barpa_dirpath(args.domain,
                                          args.driving_source,
                                          args.driving_experiment,
                                          args.freq)
@@ -119,7 +119,7 @@ def main():
         filepath = ds.url.split("=")[1]
 
         # check if it is within time range
-        if len(loaddata.screen_files([filepath], tstart=args.start, tend=args.end)) == 0:
+        if len(datapaths.screen_files([filepath], tstart=args.start, tend=args.end)) == 0:
             continue
 
         src_dir = os.path.dirname(filepath)
@@ -151,10 +151,7 @@ def main():
     # Download the data to args.out_dir
     #
     error_counter = 0
-    for i, pair in enumerate(data_pairs):
-        src_file = pair[0]
-        new_file = pair[1]
-
+    for i, (src_file, new_file) in enumerate(data_pairs):
         dst_dir = os.path.dirname(new_file)
         if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
